@@ -5,6 +5,8 @@ VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicVideoTranscoderFunctionApp", "DynamicVideoTranscoderFunctionApp\DynamicVideoTranscoderFunctionApp.csproj", "{B16C2C06-5FD9-4A8B-A4A4-47CC641C98FF}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "videotranscoredfrontend", "VideoTranscoredFrontEnd\videotranscoredfrontend.esproj", "{7495E794-BF0B-4A59-9B7B-6E6888B2A132}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,12 @@ Global
 		{B16C2C06-5FD9-4A8B-A4A4-47CC641C98FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B16C2C06-5FD9-4A8B-A4A4-47CC641C98FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B16C2C06-5FD9-4A8B-A4A4-47CC641C98FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7495E794-BF0B-4A59-9B7B-6E6888B2A132}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7495E794-BF0B-4A59-9B7B-6E6888B2A132}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7495E794-BF0B-4A59-9B7B-6E6888B2A132}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{7495E794-BF0B-4A59-9B7B-6E6888B2A132}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7495E794-BF0B-4A59-9B7B-6E6888B2A132}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7495E794-BF0B-4A59-9B7B-6E6888B2A132}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
