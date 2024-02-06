@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicVideoTranscoderFunctionApp", "DynamicVideoTranscoderFunctionApp\DynamicVideoTranscoderFunctionApp.csproj", "{B16C2C06-5FD9-4A8B-A4A4-47CC641C98FF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicVideoTranscoderFunctionApp", "DynamicVideoTranscoderFunctionApp\DynamicVideoTranscoderFunctionApp.csproj", "{B16C2C06-5FD9-4A8B-A4A4-47CC641C98FF}"
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "videotranscoredfrontend", "VideoTranscoredFrontEnd\videotranscoredfrontend.esproj", "{7495E794-BF0B-4A59-9B7B-6E6888B2A132}"
 EndProject

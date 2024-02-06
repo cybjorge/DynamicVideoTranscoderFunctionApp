@@ -8,7 +8,7 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/detail" element={<DetailPage/>} />
+                <Route path="/detail/:videoUrl" element={<DetailPage/>} />
                 <Route path="/" element={<MasterPage/>} />
             </Routes>
         </Router>
