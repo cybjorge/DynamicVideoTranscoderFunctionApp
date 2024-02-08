@@ -13,7 +13,7 @@ const MasterPage = () => {
         // Fetch thumbnails from Azure Function
         const fetchThumbnails = async () => {
             try {
-                const response = await fetch('http://192.168.30.142:7049/api/get-thumbnails');
+                const response = await fetch('http://localhost:7049/api/get-thumbnails');
                 const data = await response.json();
                 setThumbnails(data);
             } catch (error) {
@@ -52,8 +52,9 @@ const MasterPage = () => {
 
     // Calculate the number of thumbnails to display in a row
     const thumbnailsPerRow = Math.min(5, Math.floor(window.innerWidth / 250));
-    const debugDetailUrl = 'https://dynamicvideotranscoding.blob.core.windows.net/videos/yt5s.io-Imagine for 1 Minute-(1080p).mp4';
-
+    const debugDetailUrl = 'https://dynamicvideotranscoding.blob.core.windows.net/videos/testminutevideo(1080p).mp4?sp=r&st=2024-02-08T16:21:40Z&se=2024-02-09T00:21:40Z&sv=2022-11-02&sr=b&sig=UNhxRlrbdjdJjuBBOgBxG3tRlSmLPMo7i1FF2rjGjZU%3D';
+    const encodedUrl = encodeURIComponent(debugDetailUrl);
+    console.log(encodedUrl);
     return (
         <div>
             <h1>Main Page</h1>
@@ -67,7 +68,7 @@ const MasterPage = () => {
                         {thumbnails.slice(0, thumbnailsPerRow).map((thumbnail, index) => (
                             <Link
                                 key={index}
-                                to={`/detail/${encodeURIComponent(debugDetailUrl)}`}
+                                to={`/detail/${encodedUrl}`}
                                 style={{ marginRight: '10px', marginBottom: '10px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}
                             >
                                 {/* Display thumbnails with max size 250 x 100 pixels */}

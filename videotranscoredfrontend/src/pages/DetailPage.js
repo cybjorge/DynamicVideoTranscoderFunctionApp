@@ -25,8 +25,9 @@ const DetailPage = () => {
     }, []); // Run this effect once when the component mounts
 
     // Handle video request
-    const { videoUrl } = useParams();
-
+    const  videoUrl  = 'https://dynamicvideotranscoding.blob.core.windows.net/videos/testminutevideo(1080p).mp4?sp=r&st=2024-02-08T16:21:40Z&se=2024-02-09T00:21:40Z&sv=2022-11-02&sr=b&sig=UNhxRlrbdjdJjuBBOgBxG3tRlSmLPMo7i1FF2rjGjZU%3D';
+    const decodeUrl = decodeURIComponent(videoUrl);
+    console.log(decodeUrl);
     useEffect(() => {
         const fetchVideo = async () => {
             try {
@@ -38,7 +39,7 @@ const DetailPage = () => {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        videoUrl: encodeURIComponent(videoUrl),
+                        videoUrl: videoUrl,
                     }),
                 });
 
@@ -71,7 +72,7 @@ const DetailPage = () => {
                 ) : (
                     videoBlob && (
                         <video controls width="640" height="360">
-                            <source src={URL.createObjectURL(videoBlob)} type="video/mp4" />
+                            <source src={URL.createObjectURL(videoBlob)} type="video/webm" />
                             Your browser does not support the video tag.
                         </video>
                     )
