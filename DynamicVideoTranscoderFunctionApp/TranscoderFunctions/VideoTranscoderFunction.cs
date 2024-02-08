@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System;
+using System.Text;
 
 
 
@@ -27,46 +29,49 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
 
             if (string.IsNullOrEmpty(videoUrl))
             {
-                return new BadRequestObjectResult("Please provide a valid 'videoUrl' in the request body.");
+                return new BadRequestObjectResult("Please provide a video URL.");
             }
-
-            // Transcode video using FFmpeg
-            return TranscodeAndReturn(videoUrl, log);
-        }
-
-        private static IActionResult TranscodeAndReturn(string videoUrl, ILogger log)
-        {
-            using (Process process = new Process())
+            try
             {
-                process.StartInfo.FileName = "ffmpeg";
-                process.StartInfo.Arguments = $"-i {videoUrl} -c:v libx264 -c:a aac -strict experimental -b:a 192k -f mp4 -";
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
+                // FFmpeg command to transcode video
+                string ffmpegArgs = $"-i {videoUrl} -vf scale=256x144 -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis -f webm -";
 
-                process.Start();
-
-                byte[] outputBytes = process.StandardOutput.BaseStream.ToByteArray();
-
-                process.WaitForExit();
-
-                if (process.ExitCode != 0)
+                using (var process = new Process
                 {
-                    log.LogError($"FFmpeg failed with code {process.ExitCode}: {process.StandardError.ReadToEnd()}");
-                    return new BadRequestObjectResult("Video transcoding failed.");
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "C:\\Users\\samba\\source\\repos\\DynamicVideoTranscoderFunctionApp\\ffmpeg\\bin\\ffmpeg.exe",
+                        Arguments = ffmpegArgs,
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                })
+                {
+                    process.Start();
+
+                    using (var memoryStream = new MemoryStream())
+                    {
+
+                        await process.StandardOutput.BaseStream.CopyToAsync(memoryStream);
+
+
+
+                        // Reset memory stream position to the beginning
+                        memoryStream.Position = 0;
+
+                        byte[] fileBytes = memoryStream.ToArray();
+
+
+                        return new FileContentResult(fileBytes, "video/webm");
+
+
+                    }
                 }
-
-                return new FileContentResult(outputBytes, "video/mp4");
             }
-        }
-
-        public static byte[] ToByteArray(this Stream stream)
-        {
-            using (MemoryStream memoryStream = new MemoryStream())
+            catch (Exception ex)
             {
-                stream.CopyTo(memoryStream);
-                return memoryStream.ToArray();
+                return new BadRequestObjectResult($"Error transcoding video: {ex.Message}");
             }
         }
     }
