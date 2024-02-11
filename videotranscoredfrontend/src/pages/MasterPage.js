@@ -52,9 +52,7 @@ const MasterPage = () => {
 
     // Calculate the number of thumbnails to display in a row
     const thumbnailsPerRow = Math.min(5, Math.floor(window.innerWidth / 250));
-    const debugDetailUrl = 'https://dynamicvideotranscoding.blob.core.windows.net/videos/testminutevideo(1080p).mp4?sp=r&st=2024-02-08T16:21:40Z&se=2024-02-09T00:21:40Z&sv=2022-11-02&sr=b&sig=UNhxRlrbdjdJjuBBOgBxG3tRlSmLPMo7i1FF2rjGjZU%3D';
-    const encodedUrl = encodeURIComponent(debugDetailUrl);
-    console.log(encodedUrl);
+
     return (
         <div>
             <h1>Main Page</h1>
@@ -68,18 +66,18 @@ const MasterPage = () => {
                         {thumbnails.slice(0, thumbnailsPerRow).map((thumbnail, index) => (
                             <Link
                                 key={index}
-                                to={`/detail/${encodedUrl}`}
+                                to={`/detail/${thumbnail.videoId}`} // Pass videoId instead of URL
                                 style={{ marginRight: '10px', marginBottom: '10px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}
                             >
                                 {/* Display thumbnails with max size 250 x 100 pixels */}
                                 <img
-                                    src={thumbnail}
+                                    src={thumbnail.thumbnailUrl}
                                     alt={`Thumbnail ${index + 1}`}
                                     style={{ maxWidth: '250px', maxHeight: '100px', width: '100%', height: 'auto' }}
                                 />
                                 {/* Thumbnail caption below the image */}
                                 <div style={{ textAlign: 'center', padding: '5px' }}>
-                                    Caption
+                                    {thumbnail.videoName} {/* Display video name as caption */}
                                 </div>
                             </Link>
                         ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer';
 import Dashboard from '../components/Dashboard';
@@ -6,12 +6,15 @@ import getUserData from '../utils/UserDataHandler';
 import { setSessionData, getSessionData } from '../utils/SessionStorageHandler';
 
 const DetailPage = () => {
-    const [userData, setUserData] = useState(null); // State to store user data
-    const [videoSegments, setVideoSegments] = useState([]); // State to store video segments
-    const [loading, setLoading] = useState(true); // Loading state
-    const [chunkIndex, setChunkIndex] = useState(0); // State to store the index of the current chunk
-    const videoRef = useRef(null); // Reference to the video element
+    // Handle user data
+    const [userData, setUserData] = useState(null);
+    // Handle video state
+    const [videoBlob, setVideoBlob] = useState(null);
+    // Loading state
+    const [loading, setLoading] = useState(true);
     const { videoId } = useParams(); // Extract videoId from URL parameters
+
+    const [chunkIndex, setChunkIndex] = useState(0); // State to store the index of the current chunk
 
     useEffect(() => {
         // Get user data from session storage
@@ -22,11 +25,15 @@ const DetailPage = () => {
             // Get user data when the component mounts
             setUserData(getUserData());
         }
-    }, []);
+    }, []); // Run this effect once when the component mounts
+
+    // Handle video request
 
     useEffect(() => {
-        const fetchVideoSegments = async () => {
+        const fetchVideo = async () => {
             try {
+                console.log(userData);
+                // Make an HTTP request to the Azure Function with videoUrl and user data
                 const response = await fetch('http://localhost:7049/api/transcode-video', {
                     method: 'post',
                     headers: {
@@ -41,42 +48,23 @@ const DetailPage = () => {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
-                    setVideoSegments(data.VideoSegments);
+                    const blob = await response.blob();
+
+                    setVideoBlob(blob);  // Use setVideoBlob to update the state
+                    console.log('blob', blob);
                 } else {
-                    console.error('Error fetching video segments:', response.status, response.statusText);
+                    console.error('Error fetching video:', response.status, response.statusText);
                 }
             } catch (error) {
-                console.error('Error fetching video segments:', error);
+                console.error('Error fetching video:', error);
             } finally {
+                // Set loading to false when the video fetching is complete
                 setLoading(false);
             }
         };
 
-        fetchVideoSegments();
-    }, [videoId, chunkIndex]);
-
-    useEffect(() => {
-        // Monitor video playback progress
-        const handlePlaybackProgress = () => {
-            const video = videoRef.current;
-            if (video && video.currentTime >= video.duration) {
-                // Video playback reached the end, switch to playing from cache
-                setChunkIndex(prevIndex => prevIndex + 1);
-            }
-        };
-
-        const video = videoRef.current;
-        if (video) {
-            video.addEventListener('timeupdate', handlePlaybackProgress);
-        }
-
-        return () => {
-            if (video) {
-                video.removeEventListener('timeupdate', handlePlaybackProgress);
-            }
-        };
-    }, [videoSegments, chunkIndex]);
+        fetchVideo();
+    }, [ userData]); // Depend on videoUrl and userData
 
     return (
         <div>
@@ -88,27 +76,24 @@ const DetailPage = () => {
                 {loading ? (
                     <p>Loading...</p>
                 ) : (
+                    videoBlob && (
+                        <video controls width="640" height="360">
+                            <source src={URL.createObjectURL(videoBlob)} type="video/webm" />
+                            Your browser does not support the video tag.
+                        </video>
+                    )
+                )}
+                {/* Display user data */}
+                {userData && (
                     <div>
-                        {/* Display each video segment */}
-                        {videoSegments.map((segment, index) => (
-                            <video key={index} ref={videoRef} controls width="640" height="360">
-                                <source src={URL.createObjectURL(new Blob([segment]))} type="video/webm" />
-                                Your browser does not support the video tag.
-                            </video>
-                        ))}
-                        {/* Display user data */}
-                        {userData && (
-                            <div>
-                                <p>Device Type: {userData.deviceType}</p>
-                                <p>Screen Resolution: {userData.screenResolution}</p>
-                                <p>Window Resolution: {userData.windowResolution}</p>
-                                <p>Browser Info: {userData.browserInfo}</p>
-                                <p>Bandwidth: {userData.bandwidth}</p>
-                                <p>Connection Speed: {userData.connectionSpeed}</p>
-                                <p>Playback Environment: {userData.playbackEnvironment}</p>
-                                <p>Device Processing Power: {userData.deviceProcessingPower}</p>
-                            </div>
-                        )}
+                        <p>Device Type: {userData.deviceType}</p>
+                        <p>Screen Resolution: {userData.screenResolution}</p>
+                        <p>Window Resolution: {userData.windowResolution}</p>
+                        <p>Browser Info: {userData.browserInfo}</p>
+                        <p>Bandwidth: {userData.bandwidth}</p>
+                        <p>Connection Speed: {userData.connectionSpeed}</p>
+                        <p>Playback Environment: {userData.playbackEnvironment}</p>
+                        <p>Device Processing Power: {userData.deviceProcessingPower}</p>
                     </div>
                 )}
             </div>
