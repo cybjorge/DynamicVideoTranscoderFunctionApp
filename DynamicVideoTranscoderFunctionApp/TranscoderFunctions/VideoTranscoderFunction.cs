@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System;
 using System.Text;
-
-
+using System.Collections.Generic;
+using System.Data.SqlClient;
 
 namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
 {
@@ -17,25 +17,35 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
     {
         [FunctionName("TranscodeVideo")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "transcode-video")] HttpRequest req,
-            ILogger log)
+    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "transcode-video")] HttpRequest req,
+    ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(requestBody);
 
-            string videoUrl = data?.videoUrl;
+            string videoId = data?.videoId;
+            string sessionID = data?.sessionID;
+            string videoStrategy = data?.videoStrategy;
 
-            if (string.IsNullOrEmpty(videoUrl))
+            // Validate input parameters and return error if any of them is missing or invalid
+            if (string.IsNullOrEmpty(videoId))
             {
-                return new BadRequestObjectResult("Please provide a video URL.");
+                return new BadRequestObjectResult("Please provide a video ID.");
             }
+
             try
             {
-                // FFmpeg command to transcode video
-                string ffmpegArgs = $"-i {videoUrl} -vf scale=256x144 -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis -f webm -";
+                // Fetch blob URL and SAS URL from the database based on video ID
+                (string blobUrl, string sasUrl) = GetBlobAndSasUrlsFromDatabase(videoId);
 
+                // FFmpeg command to transcode video
+                string ffmpegArgs = $"-i {blobUrl + "?" + sasUrl} -vf scale=256x144 -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis -f webm -";
+
+                var transcodedVideos = new List<TranscodedVideoInfo>();
+                var response = new List<FileContentResult>();
+                // Start FFmpeg process
                 using (var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
@@ -50,29 +60,67 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                 {
                     process.Start();
 
+                    int index = 0;
+                    // Read the transcoded video from the standard output of FFmpeg
                     using (var memoryStream = new MemoryStream())
                     {
-
                         await process.StandardOutput.BaseStream.CopyToAsync(memoryStream);
-
-
 
                         // Reset memory stream position to the beginning
                         memoryStream.Position = 0;
-
                         byte[] fileBytes = memoryStream.ToArray();
 
+                        // Create FileContentResult for each transcoded video
 
                         return new FileContentResult(fileBytes, "video/webm");
-
-
+                        //for (int i = 0; i < 5; i++)
+                        //{
+                        //    response.Add(new FileContentResult(fileBytes, "video/webm"));
+                        //}
                     }
                 }
+
+                // Return the list of transcoded videos
+                return new OkObjectResult(response);
             }
             catch (Exception ex)
             {
                 return new BadRequestObjectResult($"Error transcoding video: {ex.Message}");
             }
+        }
+
+        private static (string, string) GetBlobAndSasUrlsFromDatabase(string videoId)
+        {
+            string connectionString = Environment.GetEnvironmentVariable("SqlConnectionString"); // Replace with your connection string
+            string blobUrl = "";
+            string sasUrl = "";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT blobUrl, sasUrl FROM DPVideoMetaData WHERE id = @VideoId";
+                    command.Parameters.AddWithValue("@VideoId", videoId);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            blobUrl = reader["blobUrl"].ToString();
+                            sasUrl = reader["sasUrl"].ToString();
+                        }
+                    }
+                }
+            }
+
+            return (blobUrl, sasUrl);
+        }
+        public class TranscodedVideoInfo
+        {
+            public int Index { get; set; }
+            public FileContentResult TranscodedVideo { get; set; }
         }
     }
 }
