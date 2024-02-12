@@ -10,6 +10,7 @@ const MasterPage = () => {
     const [thumbnails, setThumbnails] = useState([]);
 
     useEffect(() => {
+        setUserData(getUserData());
         // Fetch thumbnails from Azure Function
         const fetchThumbnails = async () => {
             try {
