@@ -19,6 +19,7 @@ const DetailPage = () => {
     const [videoData, setVideoData] = useState(null);
     const [eof, setEof] = useState(false);
     const videoRef = useRef(null);
+    const [requestSent, setRequestSent] = useState(false); // State to track if the request has been sent
 
 
     useEffect(() => {
@@ -34,70 +35,87 @@ const DetailPage = () => {
 
     // Handle video request
 
-    useEffect(() => {
-        const fetchVideo = async () => {
-            try {
-                const response = await fetch('http://localhost:7049/api/transcode-video', {
-                    method: 'post',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        videoId: videoId,
-                        startTimestamp: "00:00:00", //i added this just now
-                    }),
-                });
+    const fetchNextVideoChunk = async () => {
+        try {
+            const currentTime = videoRef.current ? videoRef.current.currentTime.toFixed(2) : "00:00:00";
+            console.log('fetchNextVideoChunk', currentTime);
+            const response = await fetch('http://localhost:7049/api/transcode-video', {
+                method: 'post',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    videoId: videoId,
+                    timestamp: currentTime,
+                }),
+            });
 
-                if (response.ok) {
-                    const responseData = await response.json();
-                    if (responseData && responseData.VideoContentBase64) {
-                        try {
-                            const videoContent = atob(responseData.VideoContentBase64); // Decode Base64 video content
-                            setVideoData({
-                                videoContent: videoContent,
-                                endTimestamp: responseData.endTimestamp,
-                                duration: responseData.duration,
-                            });
-                        } catch (error) {
-                            console.error('Error decoding video content:', error);
-                        }
-                    } else {
-                        console.log(responseData);
-                        console.log(responseData.VideoContentBase64.length);
-
-                        console.error('Video content is missing in the response:', responseData);
-                    }
+            if (response.ok) {
+                console.log("recieved for:", currentTime);
+                const responseData = await response.json();
+                if (responseData && responseData.VideoContentBase64) {
+                    setVideoData({
+                        videoContent: responseData.VideoContentBase64,
+                        endTimestamp: responseData.EndTimestamp,
+                        duration: responseData.Duration,
+                    });
+                    setEof(responseData.eof);
                 } else {
-                    console.error('Error fetching video:', response.status, response.statusText);
+                    console.error('Video content is missing in the response:', responseData);
                 }
-            } catch (error) {
-                console.error('Error fetching video:', error);
+            } else {
+                console.error('Error fetching video:', response.status, response.statusText);
             }
-        };
+        } catch (error) {
+            console.error('Error fetching video:', error);
+        }
+    };
 
-        fetchVideo();
-    }, [videoId]);
+    useEffect(() => {
+        if (!eof) {
+            fetchNextVideoChunk();
+        }
+    }, [eof]);
 
+    const handleTimeUpdate = () => {
+        if (
+            videoRef.current &&
+            videoRef.current.currentTime >= 0.2 * videoRef.current.duration &&
+            !eof &&
+            !requestSent // Check if the request has not been sent yet
+        ) {
+            fetchNextVideoChunk();
+            setRequestSent(true); // Set the state to indicate that the request has been sent
+        } else if (videoRef.current && videoRef.current.currentTime >= videoRef.current.duration && videoData) {
+            // Play the next segment directly if available
+            videoRef.current.src = `data:video/webm;base64,${videoData.videoContent}`;
+            videoRef.current.play();
+            setRequestSent(false); // Reset the state to allow sending requests for the next segment
+        }
+    };
+
+    const handleLoadedData = () => {
+        if (!eof) {
+            videoRef.current.play(); // Start playing the video automatically
+        }
+    };
     return (
         <div>
             <h1>Detail Page</h1>
-            <Link to="/">Go to Main Page</Link>
             <div>
-                {/* Display video player */}
                 {videoData && (
-                    console.log(videoData),
-                    console.log(videoData.videoContent),
-                    <video controls width="640" height="360">
-                        <source src={`data:video/webm;base64,${btoa(videoData.videoContent)}`} type="video/webm"  />
+                    <video
+                        ref={videoRef}
+                        controls
+                        width="640"
+                        height="360"
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedData={handleLoadedData} // Triggered when video data is loaded
+
+                    >
+                        <source src={`data:video/webm;base64,${videoData.videoContent}`} type="video/webm" />
                         Your browser does not support the video tag.
                     </video>
-                )}
-                {/* Display metadata */}
-                {videoData && (
-                    <div>
-                        <p>End Timestamp: {videoData.endTimestamp}</p>
-                        <p>Duration: {videoData.duration}</p>
-                    </div>
                 )}
             </div>
         </div>
