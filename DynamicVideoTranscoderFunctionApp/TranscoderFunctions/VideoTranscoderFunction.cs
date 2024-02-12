@@ -10,6 +10,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Text.Json;
 
 namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
 {
@@ -28,6 +29,8 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
             string videoId = data?.videoId;
             string sessionID = data?.sessionID;
             string videoStrategy = data?.videoStrategy;
+            string startTimestamp = data?.startTimestamp;
+
 
             // Validate input parameters and return error if any of them is missing or invalid
             if (string.IsNullOrEmpty(videoId))
@@ -41,9 +44,8 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                 (string blobUrl, string sasUrl) = GetBlobAndSasUrlsFromDatabase(videoId);
 
                 // FFmpeg command to transcode video
-                string ffmpegArgs = $"-i {blobUrl + "?" + sasUrl} -vf scale=256x144 -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis -f webm -";
+                string ffmpegArgs = $"-i {blobUrl + "?" + sasUrl} -ss 00:00:00 -t 10 -vf scale=1920x1080 -c:v libvpx -crf 15 -b:v 1M -c:a libvorbis -f webm -";
 
-                var transcodedVideos = new List<TranscodedVideoInfo>();
                 var response = new List<FileContentResult>();
                 // Start FFmpeg process
                 using (var process = new Process
@@ -71,12 +73,31 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                         byte[] fileBytes = memoryStream.ToArray();
 
                         // Create FileContentResult for each transcoded video
-
-                        return new FileContentResult(fileBytes, "video/webm");
+                        log.LogInformation($"Transcoding duration: {process.StartTime - process.ExitTime}");
+                        
+                        //return new FileContentResult(fileBytes, "video/webm");
                         //for (int i = 0; i < 5; i++)
                         //{
                         //    response.Add(new FileContentResult(fileBytes, "video/webm"));
                         //}
+
+                        var transcodedVideoResponse = new TranscodedVideoResponse
+                        {
+                            VideoContentBase64 = Convert.ToBase64String(fileBytes),
+                            EndTimestamp = DateTime.UtcNow, // Set end timestamp
+                            Duration = process.ExitTime - process.StartTime // Calculate duration
+                        };
+
+                        // Serialize the transcoded video response to JSON
+                        string jsonResponse = JsonSerializer.Serialize(transcodedVideoResponse);
+
+                        // Return the JSON response
+                        return new ContentResult
+                        {
+                            Content = jsonResponse,
+                            ContentType = "application/json",
+                            StatusCode = 200
+                        };
                     }
                 }
 
@@ -117,10 +138,11 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
 
             return (blobUrl, sasUrl);
         }
-        public class TranscodedVideoInfo
+        public class TranscodedVideoResponse
         {
-            public int Index { get; set; }
-            public FileContentResult TranscodedVideo { get; set; }
+            public string VideoContentBase64 { get; set; }
+            public DateTime EndTimestamp { get; set; }
+            public TimeSpan Duration { get; set; }
         }
     }
 }

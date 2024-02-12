@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer';
 import Dashboard from '../components/Dashboard';
@@ -16,6 +16,11 @@ const DetailPage = () => {
 
     const [chunkIndex, setChunkIndex] = useState(0); // State to store the index of the current chunk
 
+    const [videoData, setVideoData] = useState(null);
+    const [eof, setEof] = useState(false);
+    const videoRef = useRef(null);
+
+
     useEffect(() => {
         // Get user data from session storage
         const sessionUserData = getSessionData('userData');
@@ -32,68 +37,66 @@ const DetailPage = () => {
     useEffect(() => {
         const fetchVideo = async () => {
             try {
-                console.log(userData);
-                // Make an HTTP request to the Azure Function with videoUrl and user data
                 const response = await fetch('http://localhost:7049/api/transcode-video', {
                     method: 'post',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        videoId: videoId, // Pass videoId instead of videoUrl
-                        chunkIndex: chunkIndex,
-                        sessionID: '12345',
-                        videoStrategy: 'LowLatency',
+                        videoId: videoId,
+                        startTimestamp: "00:00:00", //i added this just now
                     }),
                 });
 
                 if (response.ok) {
-                    const blob = await response.blob();
+                    const responseData = await response.json();
+                    if (responseData && responseData.VideoContentBase64) {
+                        try {
+                            const videoContent = atob(responseData.VideoContentBase64); // Decode Base64 video content
+                            setVideoData({
+                                videoContent: videoContent,
+                                endTimestamp: responseData.endTimestamp,
+                                duration: responseData.duration,
+                            });
+                        } catch (error) {
+                            console.error('Error decoding video content:', error);
+                        }
+                    } else {
+                        console.log(responseData);
+                        console.log(responseData.VideoContentBase64.length);
 
-                    setVideoBlob(blob);  // Use setVideoBlob to update the state
-                    console.log('blob', blob);
+                        console.error('Video content is missing in the response:', responseData);
+                    }
                 } else {
                     console.error('Error fetching video:', response.status, response.statusText);
                 }
             } catch (error) {
                 console.error('Error fetching video:', error);
-            } finally {
-                // Set loading to false when the video fetching is complete
-                setLoading(false);
             }
         };
 
         fetchVideo();
-    }, [ userData]); // Depend on videoUrl and userData
+    }, [videoId]);
 
     return (
         <div>
             <h1>Detail Page</h1>
             <Link to="/">Go to Main Page</Link>
-            <Dashboard />
             <div>
                 {/* Display video player */}
-                {loading ? (
-                    <p>Loading...</p>
-                ) : (
-                    videoBlob && (
-                        <video controls width="640" height="360">
-                            <source src={URL.createObjectURL(videoBlob)} type="video/webm" />
-                            Your browser does not support the video tag.
-                        </video>
-                    )
+                {videoData && (
+                    console.log(videoData),
+                    console.log(videoData.videoContent),
+                    <video controls width="640" height="360">
+                        <source src={`data:video/webm;base64,${btoa(videoData.videoContent)}`} type="video/webm"  />
+                        Your browser does not support the video tag.
+                    </video>
                 )}
-                {/* Display user data */}
-                {userData && (
+                {/* Display metadata */}
+                {videoData && (
                     <div>
-                        <p>Device Type: {userData.deviceType}</p>
-                        <p>Screen Resolution: {userData.screenResolution}</p>
-                        <p>Window Resolution: {userData.windowResolution}</p>
-                        <p>Browser Info: {userData.browserInfo}</p>
-                        <p>Bandwidth: {userData.bandwidth}</p>
-                        <p>Connection Speed: {userData.connectionSpeed}</p>
-                        <p>Playback Environment: {userData.playbackEnvironment}</p>
-                        <p>Device Processing Power: {userData.deviceProcessingPower}</p>
+                        <p>End Timestamp: {videoData.endTimestamp}</p>
+                        <p>Duration: {videoData.duration}</p>
                     </div>
                 )}
             </div>
