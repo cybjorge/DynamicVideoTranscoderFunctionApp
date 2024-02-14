@@ -1,44 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import VideoPlayer from '../components/VideoPlayer';
-import Dashboard from '../components/Dashboard';
 import getUserData from '../utils/UserDataHandler';
-import { setSessionData, getSessionData } from '../utils/SessionStorageHandler';
+import { getSessionData } from '../utils/SessionStorageHandler';
+
+import '../index.css';
 
 const DetailPage = () => {
-    // Handle user data
     const [userData, setUserData] = useState(null);
-    // Handle video state
-    const [videoBlob, setVideoBlob] = useState(null);
-    // Loading state
-    const [loading, setLoading] = useState(true);
-    const { videoId } = useParams(); // Extract videoId from URL parameters
-
-    const [chunkIndex, setChunkIndex] = useState(0); // State to store the index of the current chunk
-
     const [videoData, setVideoData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { videoId } = useParams();
     const [eof, setEof] = useState(false);
     const videoRef = useRef(null);
-    const [requestSent, setRequestSent] = useState(false); // State to track if the request has been sent
-
+    const [requestSent, setRequestSent] = useState(false);
 
     useEffect(() => {
-        // Get user data from session storage
         const sessionUserData = getSessionData('userData');
         if (sessionUserData) {
             setUserData(sessionUserData);
         } else {
-            // Get user data when the component mounts
             setUserData(getUserData());
         }
-    }, []); // Run this effect once when the component mounts
-
-    // Handle video request
+    }, []);
 
     const fetchNextVideoChunk = async () => {
         try {
             const currentTime = videoRef.current ? videoRef.current.currentTime.toFixed(2) : "00:00:00";
-            console.log('fetchNextVideoChunk', currentTime);
             const response = await fetch('http://localhost:7049/api/transcode-video', {
                 method: 'post',
                 headers: {
@@ -51,7 +39,6 @@ const DetailPage = () => {
             });
 
             if (response.ok) {
-                console.log("recieved for:", currentTime);
                 const responseData = await response.json();
                 if (responseData && responseData.VideoContentBase64) {
                     setVideoData({
@@ -60,14 +47,15 @@ const DetailPage = () => {
                         duration: responseData.Duration,
                     });
                     setEof(responseData.eof);
+                    setLoading(false);
                 } else {
-                    console.error('Video content is missing in the response:', responseData);
+                    setError('Video content is missing in the response');
                 }
             } else {
-                console.error('Error fetching video:', response.status, response.statusText);
+                setError(`Error fetching video: ${response.status} ${response.statusText}`);
             }
         } catch (error) {
-            console.error('Error fetching video:', error);
+            setError(`Error fetching video: ${error}`);
         }
     };
 
@@ -82,40 +70,51 @@ const DetailPage = () => {
             videoRef.current &&
             videoRef.current.currentTime >= 0.2 * videoRef.current.duration &&
             !eof &&
-            !requestSent // Check if the request has not been sent yet
+            !requestSent
         ) {
             fetchNextVideoChunk();
-            setRequestSent(true); // Set the state to indicate that the request has been sent
+            setRequestSent(true);
         } else if (videoRef.current && videoRef.current.currentTime >= videoRef.current.duration && videoData) {
-            // Play the next segment directly if available
             videoRef.current.src = `data:video/webm;base64,${videoData.videoContent}`;
             videoRef.current.play();
-            setRequestSent(false); // Reset the state to allow sending requests for the next segment
+            setRequestSent(false);
         }
     };
 
     const handleLoadedData = () => {
         if (!eof) {
-            videoRef.current.play(); // Start playing the video automatically
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+            }
         }
     };
+
     return (
-        <div>
-            <h1>Detail Page</h1>
-            <div>
+        <div className="h-screen flex flex-col justify-center items-center bg-gray-100 relative">
+            <div className="absolute top-0 left-0 m-4 text-xl font-bold">
+                <Link to="/">My Site</Link>
+            </div>
+            <div className="mb-8 text-center">
+                <h1 className="text-3xl font-bold">Detail Page</h1>
+            </div>
+            <div className="flex-grow w-full flex justify-center items-center">
                 {videoData && (
                     <video
                         ref={videoRef}
                         controls
-                        width="640"
-                        height="360"
+                        style={{ width: '75%', maxWidth: '100%', height: 'auto' }}
                         onTimeUpdate={handleTimeUpdate}
-                        onLoadedData={handleLoadedData} // Triggered when video data is loaded
-
+                        onLoadedData={handleLoadedData}
+                        autoPlay
                     >
                         <source src={`data:video/webm;base64,${videoData.videoContent}`} type="video/webm" />
                         Your browser does not support the video tag.
                     </video>
+                )}
+                {loading && (
+                    <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+                        <div className="loader"></div>
+                    </div>
                 )}
             </div>
         </div>
