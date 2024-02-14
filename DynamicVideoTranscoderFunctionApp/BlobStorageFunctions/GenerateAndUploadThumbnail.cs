@@ -43,7 +43,7 @@ namespace DynamicVideoTranscoderFunctionApp.BlobStorageFunctions
                     {
                         StartInfo = new ProcessStartInfo
                         {
-                            FileName = "C:\\Users\\samba\\source\\repos\\DynamicVideoTranscoderFunctionApp\\ffmpeg\\bin\\ffmpeg.exe",
+                            FileName = "..\\..\\..\\FFtools\\ffprobe\\ffprobe.exe",
                             Arguments = ffmpegArgs,
                             RedirectStandardOutput = true,
                             UseShellExecute = false,

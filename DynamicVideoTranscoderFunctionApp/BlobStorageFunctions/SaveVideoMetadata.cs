@@ -87,13 +87,13 @@ namespace DynamicVideoTranscoderFunctionApp.BlobStorageFunctions
         }
         private VideoMetaData AnalyzeVideoMetadata(string url, string sasToken)
         {
-            string ffmpegArgs = $"-v quiet -print_format json -show_format -show_streams {url+"?"+sasToken}";
+            string ffmpegArgs = $"-v quiet -print_format json -show_format -show_streams {url+sasToken}";
 
             using (var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "C:\\Users\\samba\\source\\repos\\DynamicVideoTranscoderFunctionApp\\ffmpeg\\bin\\ffprobe.exe",
+                    FileName = "..\\..\\..\\FFtools\\ffprobe\\ffprobe.exe",
                     Arguments = ffmpegArgs,
                     RedirectStandardOutput = true,
                     UseShellExecute = false,

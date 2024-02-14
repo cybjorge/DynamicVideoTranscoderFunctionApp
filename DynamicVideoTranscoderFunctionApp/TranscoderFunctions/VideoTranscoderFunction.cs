@@ -31,7 +31,7 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
             string videoStrategy = data?.videoStrategy;
             string startTimestamp = data?.startTimestamp;
 
-
+            
             // Validate input parameters and return error if any of them is missing or invalid
             if (string.IsNullOrEmpty(videoId))
             {
@@ -52,7 +52,7 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        FileName = "C:\\Users\\samba\\source\\repos\\DynamicVideoTranscoderFunctionApp\\ffmpeg\\bin\\ffmpeg.exe",
+                        FileName = "..\\..\\..\\FFtools\\ffmpeg\\ffmpeg.exe",
                         Arguments = ffmpegArgs,
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
