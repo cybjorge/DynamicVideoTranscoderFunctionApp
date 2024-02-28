@@ -27,24 +27,84 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
             dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(requestBody);
 
             string videoId = data?.videoId;
-            string sessionID = data?.sessionID;
-            string videoStrategy = data?.videoStrategy;
-            string startTimestamp = data?.startTimestamp;
-
+            string duration = data?.duration;
+            string startTimestamp = data?.newStartTime;
+            var userData = data?.userData;
             
             // Validate input parameters and return error if any of them is missing or invalid
             if (string.IsNullOrEmpty(videoId))
             {
                 return new BadRequestObjectResult("Please provide a video ID.");
             }
+            if (string.IsNullOrEmpty(duration))
+            {
+                return new BadRequestObjectResult("Please provide a duration.");
+            }
+            if (string.IsNullOrEmpty(startTimestamp))
+            {
+                return new BadRequestObjectResult("Please provide a start timestamp.");
+            }
+            if(userData == null)
+            {
+                return new BadRequestObjectResult("Please provide user data.");
+            }
+            //retrieve sql data
+            var startFetchFromDb = DateTime.Now;
+            VideoMetadata videoMetadata = FetchVideoMetadata(videoId);
+            var stopFetchFromDb = DateTime.Now;
+            
+            log.LogCritical($"Time taken to fetch video metadata from database: {stopFetchFromDb - startFetchFromDb}");
+            // debug and testing variables for command
+            var debugDuration = 10;
+            var debugResolution = userData?.deviceType == 101
+                ? userData?.connectionSpeed == "4g" ? "1920x1080"
+                : userData?.connectionSpeed == "3g" ? "1280x720"
+                : "854x480"
+                : userData?.deviceType == 110
+                    ? userData?.connectionSpeed == "4g" ? "1280x720"
+                    : "640x360"
+                    : "854x480";
+            var debugVideoCodec = userData?.deviceType == 101 ?
+                userData.codecSupport == 1 ? "libvpx-vp9" :"libvpx-vp8" : "libvpx"; 
+            var debugAudioCodec = "libvorbis";
+            var debugBitrate = userData?.connectionSpeed == "4g"
+                ? Math.Max(
+                    videoMetadata.Bitrate >= 8000 ? 8000000 : videoMetadata.Bitrate >= 5000 ? 5000000 : 2000000, // Original bitrate approach
+                    videoMetadata.ResolutionX >= 1920 && videoMetadata.ResolutionY >= 1080 ? 8000000 : videoMetadata.ResolutionX >= 1280 && videoMetadata.ResolutionY >= 720 ? 5000000 : 2000000 // Video resolution approach
+                )
+                : (userData?.connectionSpeed == "3g"
+                    ? Math.Max(
+                        videoMetadata.Bitrate >= 5000 ? 5000000 : 2000000, // Adjusted for 3G connection (original bitrate approach)
+                        videoMetadata.ResolutionX >= 1280 && videoMetadata.ResolutionY >= 720 ? 2000000 : 1000000 // Adjusted for 3G connection (video resolution approach)
+                    )
+                    : 1000000); // Default bitrate for other connection speeds
+
+            var debugBitrateString = (debugBitrate / 1000000) + "M";
+            var debugFormat = "webm";
+            var debugCrf = (int)userData?.deviceProcessingPower >= 32
+                ? userData?.connectionSpeed == "4g" ? "10" : userData?.connectionSpeed == "3g" ? "15" : "20" // Higher processing power, adjusted CRF based on connection speed
+                : (userData?.deviceProcessingPower >= 16
+                    ? userData?.connectionSpeed == "4g" ? "20" : userData?.connectionSpeed == "3g" ? "25" : "30" // Medium processing power, adjusted CRF based on connection speed
+                    : userData?.connectionSpeed == "4g" ? "30" : userData?.connectionSpeed == "3g" ? "35" : "40"); // Lower processing power, adjusted CRF based on connection speed
+
 
             try
             {
                 // Fetch blob URL and SAS URL from the database based on video ID
                 (string blobUrl, string sasUrl) = GetBlobAndSasUrlsFromDatabase(videoId);
-
+                //get duration from db
+                 
                 // FFmpeg command to transcode video
-                string ffmpegArgs = $"-i {blobUrl + "?" + sasUrl} -ss 00:00:00 -t 10 -vf scale=1920x1080 -c:v libvpx -crf 15 -b:v 1M -c:a libvorbis -f webm -";
+                string ffmpegArgs = $"-i {blobUrl + "?" + sasUrl} " +
+                    $"-ss {startTimestamp} " +
+                    $"-t {debugDuration} " +
+                    $"-vf scale={debugResolution} " +
+                    $"-c:v {debugVideoCodec} " +
+                    $"-crf {debugCrf} " +
+                    $"-b:v {debugBitrateString} " +
+                    $"-c:a {debugAudioCodec} " +
+                    $"-f {debugFormat} -";
+
 
                 var response = new List<FileContentResult>();
                 // Start FFmpeg process
@@ -73,8 +133,9 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                         byte[] fileBytes = memoryStream.ToArray();
 
                         // Create FileContentResult for each transcoded video
-                        log.LogInformation($"Transcoding duration: {process.StartTime - process.ExitTime}");
-                        
+                        log.LogCritical($"Transcoding duration: {process.StartTime - process.ExitTime}");
+                        log.LogCritical($"FFmpeg command: {ffmpegArgs}");
+
                         //return new FileContentResult(fileBytes, "video/webm");
                         //for (int i = 0; i < 5; i++)
                         //{
@@ -84,8 +145,8 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                         var transcodedVideoResponse = new TranscodedVideoResponse
                         {
                             VideoContentBase64 = Convert.ToBase64String(fileBytes),
-                            EndTimestamp = DateTime.UtcNow, // Set end timestamp
-                            Duration = process.ExitTime - process.StartTime // Calculate duration
+                            EndTimestamp = TimeSpan.Parse(startTimestamp) + new TimeSpan(0,0,debugDuration), // Set end timestamp
+                            Duration = new TimeSpan(0,0,10) // Calculate duration
                         };
 
                         // Serialize the transcoded video response to JSON
@@ -141,8 +202,47 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
         public class TranscodedVideoResponse
         {
             public string VideoContentBase64 { get; set; }
-            public DateTime EndTimestamp { get; set; }
+            public TimeSpan EndTimestamp { get; set; }
             public TimeSpan Duration { get; set; }
+        }
+        public class VideoMetadata
+        {
+            public int ResolutionX { get; set; }
+            public int ResolutionY { get; set; }
+            public int Bitrate { get; set; }
+            public long Size { get; set; }
+            public string Format { get; set; }
+            public decimal Duration { get; set; }
+        }
+        private static VideoMetadata FetchVideoMetadata(string videoId)
+        {
+            VideoMetadata videoMetadata = new VideoMetadata();
+            string connectionString = Environment.GetEnvironmentVariable("SqlConnectionString"); // Replace with your connection string
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = @"SELECT [format], [resolutionX], [resolutionY], [bitrate], [size], [duration] FROM [dbo].[DPVideoMetaData]  WHERE id = @VideoId";
+                    command.Parameters.AddWithValue("@VideoId", videoId);
+
+                    SqlDataReader reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+
+                        videoMetadata.Format = (string)reader["format"];
+                        videoMetadata.ResolutionX = (int)reader["resolutionX"];
+                        videoMetadata.ResolutionY = (int)reader["resolutionY"];
+                        videoMetadata.Bitrate = (int)reader["bitrate"];
+                        videoMetadata.Size = (long)reader["size"];
+                        videoMetadata.Duration = (decimal)reader["duration"];
+                    }
+                }
+                connection.Close();
+            }
+            
+            return videoMetadata;
         }
     }
 }

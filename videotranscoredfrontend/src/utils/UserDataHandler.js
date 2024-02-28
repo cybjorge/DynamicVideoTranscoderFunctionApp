@@ -8,6 +8,7 @@ const getUserData = () => {
         connectionSpeed : getConnectionSpeed(),
         playbackEnvironment: getPlaybackEnvironment(),
         deviceProcessingPower: getDeviceProcessingPower(),
+        codecSupport : getCodecSupport(),
     };
 };
 
@@ -15,11 +16,11 @@ const getDeviceType = () => {
     // Use the user agent to determine the device type
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes('mobile')) {
-        return 'Mobile';
+        return 110;
     } else if (userAgent.includes('tablet')) {
-        return 'Tablet';
+        return 111;
     } else {
-        return 'Desktop';
+        return 101;
     }
 };
 
@@ -57,6 +58,9 @@ const getPlaybackEnvironment = () => {
 
 const getDeviceProcessingPower = () => {
     return navigator.hardwareConcurrency || 'N/A';
+};
+const getCodecSupport = () => {
+    return MediaRecorder.isTypeSupported('video/webm;codecs=vp9') === true ? 1 : 0; //1 for supported, 0 for not supported for vp9 codec
 };
 console.log(getUserData());
 export default getUserData;

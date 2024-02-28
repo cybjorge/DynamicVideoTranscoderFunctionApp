@@ -26,7 +26,11 @@ const DetailPage = () => {
 
     const fetchNextVideoChunk = async () => {
         try {
+            console.log('Fetching next video chunk for videoId: ', videoId);
+            console.log(' videoData: ', videoData);
+
             const currentTime = videoRef.current ? videoRef.current.currentTime.toFixed(2) : "00:00:00";
+            const currentDuration = videoRef.current ? videoRef.current.duration.toFixed(2) : "00:00:00";
             const response = await fetch('http://localhost:7049/api/transcode-video', {
                 method: 'post',
                 headers: {
@@ -35,12 +39,19 @@ const DetailPage = () => {
                 body: JSON.stringify({
                     videoId: videoId,
                     timestamp: currentTime,
+                    newStartTime: videoData ? videoData.endTimestamp : "00:00:00",
+                    duration: currentDuration,
+                    userData: getUserData(),
+
                 }),
             });
 
             if (response.ok) {
+                //console.log('Response is ok for time ', videoRef.current.currentTime);
+
                 const responseData = await response.json();
                 if (responseData && responseData.VideoContentBase64) {
+                    console.log('Response data: ', responseData);
                     setVideoData({
                         videoContent: responseData.VideoContentBase64,
                         endTimestamp: responseData.EndTimestamp,
@@ -73,6 +84,7 @@ const DetailPage = () => {
             !requestSent
         ) {
             fetchNextVideoChunk();
+            //console.log('Request sent for time ', videoRef.current.currentTime)
             setRequestSent(true);
         } else if (videoRef.current && videoRef.current.currentTime >= videoRef.current.duration && videoData) {
             videoRef.current.src = `data:video/webm;base64,${videoData.videoContent}`;
@@ -114,6 +126,18 @@ const DetailPage = () => {
                 {loading && (
                     <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
                         <div className="loader"></div>
+                    </div>
+                )}
+                {userData && (
+                    <div>
+                        <p>Device Type: {userData.deviceType}</p>
+                        <p>Screen Resolution: {userData.screenResolution}</p>
+                        <p>Window Resolution: {userData.windowResolution}</p>
+                        <p>Browser Info: {userData.browserInfo}</p>
+                        <p>Bandwidth: {userData.bandwidth}</p>
+                        <p>Connection Speed: {userData.connectionSpeed}</p>
+                        <p>Playback Environment: {userData.playbackEnvironment}</p>
+                        <p>Device Processing Power: {userData.deviceProcessingPower}</p>
                     </div>
                 )}
             </div>
