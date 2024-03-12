@@ -7,18 +7,20 @@ using Microsoft.WindowsAzure.Storage;
 using System.Data.SqlClient;
 using static DynamicVideoTranscoderFunctionApp.BlobStorageFunctions.SaveVideoMetadata;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace DynamicVideoTranscoderFunctionApp.BlobStorageFunctions
 {
     public class RefreshSasTokenFunction
     {
         [FunctionName("RefreshSasTokenFunction")]
-        public void Run([TimerTrigger("0 0 0 * * *")]TimerInfo myTimer, ILogger log)
+        public void Run([TimerTrigger("0 47 19 * * *")]TimerInfo myTimer, ILogger log)
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
             try
             {
                 string connectionString = Environment.GetEnvironmentVariable("SqlConnectionString");
+                //string connectionString = ConfigurationManager.ConnectionStrings["SqlConnectionString"].ConnectionString;
                 string containerName = "videos";
 
                 // Fetch all records from the database
