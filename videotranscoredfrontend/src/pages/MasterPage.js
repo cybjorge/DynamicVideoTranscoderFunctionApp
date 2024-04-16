@@ -4,7 +4,7 @@ import getUserData from '../utils/UserDataHandler';
 import { setSessionData, getSessionData } from '../utils/SessionStorageHandler';
 import { updateBandwidth, measureConnectionSpeed } from '../utils/BandwithHandler';
 import 'whatwg-fetch';
-import '../index.css'; // Import your CSS file here
+import { PRODUCTION_URL, DEVELOPMENT_URL } from '../VariableTable';
 
 const MasterPage = () => {
     const [userData, setUserData] = useState(null);
@@ -14,11 +14,11 @@ const MasterPage = () => {
 
     useEffect(() => {
         setUserData(getUserData());
-
+        console.log(PRODUCTION_URL);
         // Fetch thumbnails from Azure Function
         const fetchThumbnails = async () => {
             try {
-                const response = await fetch('http://localhost:7049/api/get-thumbnails');
+                const response = await fetch(DEVELOPMENT_URL + '/api/get-thumbnails');
                 const data = await response.json();
                 setThumbnails(data);
             } catch (error) {
@@ -64,73 +64,74 @@ const MasterPage = () => {
     const thumbnailHeight = window.innerWidth > window.innerHeight ? '150px' : '100px';
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-5xl text-center">
-                <h1 className="text-3xl font-bold mb-4">Main Page</h1>
-                {/* Display thumbnails */}
-                {thumbnails.length > 0 && (
-                    <div className="w-full mb-8">
-                        <h2 className="mb-4">Thumbnails</h2>
-                        <div className="flex flex-wrap justify-center">
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-200 to-purple-200 text-gray-800 relative"> {/* Added relative positioning */}
+            <div className="flex justify-between items-center p-4">
+                <h1 className="text-3xl font-bold border border-gray-300 rounded-lg p-2 shadow-md">T-APP</h1>
+                <div></div>
+            </div>
+            <div className="flex justify-center items-center">
+                <div className="w-95vw max-w-6xl text-center px-4">
+                    <h1 className="text-4xl font-semibold mt-8 mb-10">Main Page</h1>
+                    {thumbnails.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {thumbnails.map((thumbnail, index) => (
                                 <Link
                                     key={index}
-                                    to={`/detail/${thumbnail.videoId}`} // Pass videoId instead of URL
-                                    className="m-2 p-2 border border-gray-200 rounded-md shadow-md overflow-hidden transition-transform duration-300 hover:scale-110"
-                                    style={{ maxWidth: thumbnailWidth }}
+                                    to={`/detail/${thumbnail.videoId}`}
+                                    className="flex flex-col bg-white rounded-lg overflow-hidden shadow-md transition-transform duration-300 hover:scale-105"
                                 >
-                                    {/* Display thumbnails with dynamic size */}
                                     <img
                                         src={thumbnail.thumbnailUrl}
                                         alt={`Thumbnail ${index + 1}`}
                                         className="w-full h-auto"
-                                        style={{ maxHeight: thumbnailHeight }}
                                     />
-                                    {/* Thumbnail caption below the image */}
-                                    <div className="text-center overflow-hidden whitespace-nowrap">
-                                        {thumbnail.videoName.length > 10 ? `${thumbnail.videoName.slice(0, 10)}...` : thumbnail.videoName} {/* Display video name as caption */}
+                                    <div className="p-4">
+                                        <p className="text-lg font-semibold mb-2">{thumbnail.videoName}</p>
+                                        <p className="text-sm text-gray-600">{thumbnail.description}</p>
                                     </div>
                                 </Link>
                             ))}
                         </div>
+                    )}
+
+                    {/* Display user data drawer */}
+                    <div className={`fixed bottom-10 right-5 m-4 p-2 bg-blue-500 hover:bg-blue-700 text-white font-bold rounded-full shadow-md transition-transform duration-300 transform ${showUserData ? 'translate-y-0' : 'translate-y-full'}`}>
+                        <button onClick={() => setShowUserData(!showUserData)}>
+                            {showUserData ? 'Hide User Data' : 'Show User Data'}
+                        </button>
                     </div>
-                )}
 
-                {/* Display user data button */}
-                <button onClick={() => setShowUserData(!showUserData)} className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    {showUserData ? 'Hide User Data' : 'Show User Data'}
-                </button>
+                    {/* Display user data drawer */}
+                    <div className={`fixed bottom-0 left-0 right-0 bg-white p-4 transition-transform duration-300 transform ${showUserData ? 'translate-y-0' : 'translate-y-full'}`}>
+                        <button
+                            onClick={() => setShowUserData(false)}
+                            className="absolute top-0 right-0 m-4 p-2 bg-gray-200 rounded-full"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        {userData && (
+                            <div>
+                                <p>Device Type: {userData.deviceType}</p>
+                                <p>Screen Resolution: {userData.screenResolution}</p>
+                                <p>Window Resolution: {userData.windowResolution}</p>
+                                <p>Browser Info: {userData.browserInfo}</p>
+                                <p>Bandwidth: {userData.bandwidth}</p>
+                                <p>Connection Speed: {userData.connectionSpeed}</p>
+                                <p>Playback Environment: {userData.playbackEnvironment}</p>
+                                <p>Device Processing Power: {userData.deviceProcessingPower}</p>
+                            </div>
+                        )}
+                    </div>
 
-                {/* Display user data drawer */}
-                <div className={`fixed bottom-0 left-0 right-0 bg-white p-4 transition-transform duration-300 transform ${showUserData ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <button
-                        onClick={() => setShowUserData(false)}
-                        className="absolute top-0 right-0 m-4 p-2 bg-white rounded-full"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                    {userData && (
-                        <div>
-                            <p>Device Type: {userData.deviceType}</p>
-                            <p>Screen Resolution: {userData.screenResolution}</p>
-                            <p>Window Resolution: {userData.windowResolution}</p>
-                            <p>Browser Info: {userData.browserInfo}</p>
-                            <p>Bandwidth: {userData.bandwidth}</p>
-                            <p>Connection Speed: {userData.connectionSpeed}</p>
-                            <p>Playback Environment: {userData.playbackEnvironment}</p>
-                            <p>Device Processing Power: {userData.deviceProcessingPower}</p>
+                    {/* Display error message */}
+                    {error && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-red-500 text-white text-center py-2">
+                            {error}
                         </div>
                     )}
                 </div>
-
-                {/* Display error message */}
-                {error && (
-                    <div className="fixed bottom-0 left-0 right-0 bg-red-500 text-white text-center py-2">
-                        {error}
-                    </div>
-                )}
             </div>
         </div>
     );

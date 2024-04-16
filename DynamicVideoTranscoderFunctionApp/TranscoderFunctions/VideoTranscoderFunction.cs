@@ -18,7 +18,7 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
     {
         [FunctionName("TranscodeVideo")]
         public static async Task<IActionResult> Run(
-    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "transcode-video")] HttpRequest req,
+    [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "transcode-video")] HttpRequest req,
     ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
@@ -30,7 +30,9 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
             string duration = data?.duration;
             string startTimestamp = data?.newStartTime;
             var userData = data?.userData;
-            
+            var chunkId = data?.uniqueID;
+            log.LogCritical($"{chunkId}");
+
             // Validate input parameters and return error if any of them is missing or invalid
             if (string.IsNullOrEmpty(videoId))
             {
@@ -112,7 +114,7 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        FileName = "..\\..\\..\\FFtools\\ffmpeg\\ffmpeg.exe",
+                        FileName =Environment.GetEnvironmentVariable("ffLocation") + "ffmpeg\\ffmpeg.exe",
                         Arguments = ffmpegArgs,
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
@@ -146,7 +148,8 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
                         {
                             VideoContentBase64 = Convert.ToBase64String(fileBytes),
                             EndTimestamp = TimeSpan.Parse(startTimestamp) + new TimeSpan(0,0,debugDuration), // Set end timestamp
-                            Duration = new TimeSpan(0,0,10) // Calculate duration
+                            Duration = new TimeSpan(0,0,10), // Calculate duration
+                            uniqueID = chunkId
                         };
 
                         // Serialize the transcoded video response to JSON
@@ -204,6 +207,7 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
             public string VideoContentBase64 { get; set; }
             public TimeSpan EndTimestamp { get; set; }
             public TimeSpan Duration { get; set; }
+            public string uniqueID { get; set; }
         }
         public class VideoMetadata
         {

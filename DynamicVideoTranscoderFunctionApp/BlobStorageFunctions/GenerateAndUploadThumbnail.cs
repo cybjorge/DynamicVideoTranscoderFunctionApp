@@ -43,7 +43,7 @@ namespace DynamicVideoTranscoderFunctionApp.BlobStorageFunctions
                     {
                         StartInfo = new ProcessStartInfo
                         {
-                            FileName = "..\\..\\..\\FFtools\\ffprobe\\ffprobe.exe",
+                            FileName = Environment.GetEnvironmentVariable("ffLocation") + "ffprobe\\ffprobe.exe",
                             Arguments = ffmpegArgs,
                             RedirectStandardOutput = true,
                             UseShellExecute = false,

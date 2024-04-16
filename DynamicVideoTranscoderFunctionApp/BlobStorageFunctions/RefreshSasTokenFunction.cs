@@ -14,7 +14,7 @@ namespace DynamicVideoTranscoderFunctionApp.BlobStorageFunctions
     public class RefreshSasTokenFunction
     {
         [FunctionName("RefreshSasTokenFunction")]
-        public void Run([TimerTrigger("0 47 19 * * *")]TimerInfo myTimer, ILogger log)
+        public void Run([TimerTrigger("0 30 15 * * *")]TimerInfo myTimer, ILogger log)
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
             try

@@ -2,49 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* index.css */
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
-/* Apply Font Styles */
-body {
-    font-family: 'Roboto', sans-serif;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    font-weight: bold;
-    font-size: 2rem; /* Example size for headlines, adjust as needed */
-}
-
-p {
-    font-size: 1rem; /* Example size for other text elements, adjust as needed */
-}
-.loader {
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid #3498db; /* Blue */
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
+/* Adjust font sizes for responsiveness */
+@media (max-width: 768px) {
+    h1 {
+        @apply text-3xl; /* Tailwind utility for font size */
     }
 
-    100% {
-        transform: rotate(360deg);
+    h2 {
+        @apply text-2xl; /* Tailwind utility for font size */
     }
+
+    p {
+        @apply text-base; /* Tailwind utility for font size */
+    }
+}
+
+/* Update button styles with a gradient and border */
+.button {
+    @apply bg-gradient-to-r from-yellow-400 to-red-600 text-white font-bold py-2 px-4 rounded border border-transparent transition-all duration-300 shadow-md;
+}
+
+    /* Add hover effect with a darker gradient */
+    .button:hover {
+        @apply bg-gradient-to-r from-yellow-500 to-red-700;
+    }
+
+/* Add hover effects to thumbnails with a brighter shadow */
+.thumbnail:hover {
+    @apply transform scale-105 shadow-lg;
+}
+
+/* Customize drawer with a colorful border */
+.drawer {
+    @apply fixed bottom-0 left-0 right-0 bg-white p-4 transition-transform duration-300 border-t-4 border-red-600;
+}
+
+/* Update close button with a colorful background */
+.drawer-close {
+    @apply absolute top-0 right-0 m-4 p-2 bg-gradient-to-r from-yellow-400 to-red-600 rounded-full shadow-md;
+}
+
+/* Update error message with a gradient background */
+.error-message {
+    @apply fixed bottom-0 left-0 right-0 bg-gradient-to-r from-yellow-400 to-red-600 text-white text-center py-2;
 }

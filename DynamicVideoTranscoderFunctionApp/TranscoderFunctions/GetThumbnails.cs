@@ -15,7 +15,7 @@ namespace DynamicVideoTranscoderFunctionApp.TranscoderFunctions
     {
         [FunctionName("GetThumbnails")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "get-thumbnails")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "get-thumbnails")] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
